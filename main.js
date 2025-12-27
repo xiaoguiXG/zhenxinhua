@@ -233,7 +233,11 @@ const els = {
   prompt: $("prompt"),
   stickyWho: $("stickyWho"),
   stickyPrompt: $("stickyPrompt"),
+  chatShell: $("chatShell"),
   chatList: $("chatList"),
+  chatInputRow: $("chatInputRow"),
+  emojiPanel: $("emojiPanel"),
+  chatEmojiBtn: $("chatEmojiBtn"),
   chatInput: $("chatInput"),
   chatSendBtn: $("chatSendBtn"),
   chatClearBtn: $("chatClearBtn"),
@@ -715,6 +719,109 @@ function formatTime(ts) {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function readVisualViewportBottomInset() {
+  const vv = window.visualViewport;
+  if (!vv) return 0;
+  const inset = window.innerHeight - (vv.height + vv.offsetTop);
+  if (!Number.isFinite(inset)) return 0;
+  return Math.max(0, Math.round(inset));
+}
+
+function isChatViewportActive() {
+  if (!els.chatShell) return false;
+  const active = document.activeElement;
+  if (!active) return false;
+  return els.chatShell.contains(active);
+}
+
+function updateChatOverlay() {
+  if (!els.chatShell) return;
+
+  if (els.chatInputRow) {
+    const rect = els.chatInputRow.getBoundingClientRect();
+    const h = Math.max(0, Math.ceil(rect.height));
+    if (h) els.chatShell.style.setProperty("--chat-input-h", `${h}px`);
+  }
+
+  const vvBottom = isChatViewportActive() ? readVisualViewportBottomInset() : 0;
+  els.chatShell.style.setProperty("--vv-bottom", `${vvBottom}px`);
+}
+
+function scrollChatToBottom() {
+  if (!els.chatList) return;
+  els.chatList.scrollTop = els.chatList.scrollHeight;
+}
+
+function ensureChatBottomVisible() {
+  updateChatOverlay();
+  scrollChatToBottom();
+}
+
+function dedupeEmojiPanel() {
+  if (!els.emojiPanel) return;
+  const buttons = Array.from(els.emojiPanel.querySelectorAll(".emoji"));
+  const seen = new Set();
+  for (const btn of buttons) {
+    const raw = btn.getAttribute("data-emoji") || btn.textContent || "";
+    const emoji = String(raw).trim();
+    if (!emoji) continue;
+    if (seen.has(emoji)) {
+      btn.remove();
+      continue;
+    }
+    seen.add(emoji);
+    btn.setAttribute("data-emoji", emoji);
+    if ((btn.textContent || "").trim() !== emoji) btn.textContent = emoji;
+  }
+}
+
+function isEmojiPanelOpen() {
+  if (!els.emojiPanel) return false;
+  return !els.emojiPanel.hasAttribute("hidden");
+}
+
+function setEmojiPanelOpen(open) {
+  if (!els.emojiPanel || !els.chatEmojiBtn) return;
+  if (open) {
+    els.emojiPanel.removeAttribute("hidden");
+    els.chatEmojiBtn.classList.add("is-active");
+    els.chatEmojiBtn.setAttribute("aria-expanded", "true");
+  } else {
+    els.emojiPanel.setAttribute("hidden", "");
+    els.chatEmojiBtn.classList.remove("is-active");
+    els.chatEmojiBtn.setAttribute("aria-expanded", "false");
+  }
+}
+
+function toggleEmojiPanel() {
+  setEmojiPanelOpen(!isEmojiPanelOpen());
+}
+
+function insertTextIntoChatInput(text) {
+  const el = els.chatInput;
+  if (!el) return;
+  try {
+    el.focus();
+  } catch {
+    // ignore
+  }
+
+  const value = String(el.value || "");
+  const start = typeof el.selectionStart === "number" ? el.selectionStart : value.length;
+  const end = typeof el.selectionEnd === "number" ? el.selectionEnd : value.length;
+  const next = value.slice(0, start) + text + value.slice(end);
+  el.value = next;
+
+  try {
+    const nextPos = start + String(text).length;
+    el.setSelectionRange(nextPos, nextPos);
+  } catch {
+    // ignore
+  }
+
+  autoSizeChatInput();
+}
+
 function renderChat() {
   els.chatList.innerHTML = "";
   const list = Array.isArray(state.chat) ? state.chat : [];
@@ -742,12 +849,13 @@ function renderChat() {
     wrap.appendChild(bubble);
     els.chatList.appendChild(wrap);
   }
-  els.chatList.scrollTop = els.chatList.scrollHeight;
+  scrollChatToBottom();
 }
 
 function sendChat() {
   const text = String(els.chatInput.value || "").replace(/\r\n/g, "\n").trim();
   if (!text) return;
+  setEmojiPanelOpen(false);
   const msg = { id: makeChatId(), side: state.selfSide, text, ts: Date.now() };
   state.chat = mergeChatLists(state.chat, [msg]);
   saveJson(STORAGE_KEYS.chat, state.chat);
@@ -766,6 +874,7 @@ function autoSizeChatInput() {
   const next = Math.min(el.scrollHeight, maxH);
   el.style.height = `${next}px`;
   el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
+  ensureChatBottomVisible();
 }
 
 function bindEvents() {
@@ -848,6 +957,29 @@ function bindEvents() {
     sendChat();
     els.chatInput.focus();
   });
+  if (els.chatEmojiBtn && els.emojiPanel) {
+    els.chatEmojiBtn.addEventListener("click", () => {
+      toggleEmojiPanel();
+      ensureChatBottomVisible();
+    });
+
+    els.emojiPanel.addEventListener("click", (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest(".emoji") : null;
+      if (!btn) return;
+      const emoji = btn.getAttribute("data-emoji") || btn.textContent || "";
+      if (!emoji) return;
+      insertTextIntoChatInput(emoji);
+      setEmojiPanelOpen(false);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!isEmojiPanelOpen()) return;
+      const t = e.target;
+      if (els.emojiPanel.contains(t)) return;
+      if (els.chatEmojiBtn.contains(t)) return;
+      setEmojiPanelOpen(false);
+    });
+  }
   els.chatInput.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
     if (e.ctrlKey || e.metaKey) {
@@ -855,8 +987,18 @@ function bindEvents() {
       sendChat();
     }
   });
+  els.chatInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    setEmojiPanelOpen(false);
+  });
   els.chatInput.addEventListener("input", () => {
     autoSizeChatInput();
+  });
+  els.chatInput.addEventListener("focus", () => {
+    ensureChatBottomVisible();
+    window.setTimeout(() => {
+      ensureChatBottomVisible();
+    }, 60);
   });
   els.chatClearBtn.addEventListener("click", () => {
     state.chat = [];
@@ -864,6 +1006,18 @@ function bindEvents() {
     renderChat();
     markRoomDirty("chat");
   });
+
+  window.addEventListener("resize", () => {
+    ensureChatBottomVisible();
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      ensureChatBottomVisible();
+    });
+    window.visualViewport.addEventListener("scroll", () => {
+      ensureChatBottomVisible();
+    });
+  }
 
   els.roomJoinBtn.addEventListener("click", () => {
     joinRoom(els.roomInput.value);
@@ -889,6 +1043,8 @@ function hydrateUI() {
   updateSelfButtons();
   renderChat();
   autoSizeChatInput();
+  setEmojiPanelOpen(false);
+  dedupeEmojiPanel();
   syncStickyDraw();
 }
 

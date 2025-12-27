@@ -69,15 +69,73 @@
             <h2>聊天</h2>
             <button id="chatClearBtn" class="btn btn-ghost">清空聊天</button>
           </div>
-          <div id="chatList" class="chat-list" aria-live="polite"></div>
-          <div class="row chat-input-row">
-            <textarea
-              id="chatInput"
-              class="input chat-textarea"
-              placeholder="输入消息：Enter 换行，Ctrl+Enter 发送"
-              spellcheck="false"
-            ></textarea>
-            <button id="chatSendBtn" class="btn btn-primary">发送</button>
+          <div id="chatShell" class="chat-shell">
+            <div id="chatList" class="chat-list" aria-live="polite"></div>
+            <div id="emojiPanel" class="emoji-panel" hidden>
+              <button class="emoji" type="button" data-emoji="😀">😀</button>
+              <button class="emoji" type="button" data-emoji="😁">😁</button>
+              <button class="emoji" type="button" data-emoji="😄">😄</button>
+              <button class="emoji" type="button" data-emoji="😅">😅</button>
+              <button class="emoji" type="button" data-emoji="😂">😂</button>
+              <button class="emoji" type="button" data-emoji="🤣">🤣</button>
+              <button class="emoji" type="button" data-emoji="😊">😊</button>
+              <button class="emoji" type="button" data-emoji="🥹">🥹</button>
+              <button class="emoji" type="button" data-emoji="🥰">🥰</button>
+              <button class="emoji" type="button" data-emoji="😍">😍</button>
+              <button class="emoji" type="button" data-emoji="😘">😘</button>
+              <button class="emoji" type="button" data-emoji="😚">😚</button>
+              <button class="emoji" type="button" data-emoji="😙">😙</button>
+              <button class="emoji" type="button" data-emoji="😉">😉</button>
+              <button class="emoji" type="button" data-emoji="😏">😏</button>
+              <button class="emoji" type="button" data-emoji="😳">😳</button>
+              <button class="emoji" type="button" data-emoji="🥺">🥺</button>
+              <button class="emoji" type="button" data-emoji="🙈">🙈</button>
+              <button class="emoji" type="button" data-emoji="🤭">🤭</button>
+              <button class="emoji" type="button" data-emoji="🫣">🫣</button>
+              <button class="emoji" type="button" data-emoji="🤔">🤔</button>
+              <button class="emoji" type="button" data-emoji="😎">😎</button>
+              <button class="emoji" type="button" data-emoji="😴">😴</button>
+              <button class="emoji" type="button" data-emoji="😭">😭</button>
+              <button class="emoji" type="button" data-emoji="😤">😤</button>
+              <button class="emoji" type="button" data-emoji="😡">😡</button>
+              <button class="emoji" type="button" data-emoji="👍">👍</button>
+              <button class="emoji" type="button" data-emoji="👌">👌</button>
+              <button class="emoji" type="button" data-emoji="🫶">🫶</button>
+              <button class="emoji" type="button" data-emoji="👎">👎</button>
+              <button class="emoji" type="button" data-emoji="🙏">🙏</button>
+              <button class="emoji" type="button" data-emoji="👏">👏</button>
+              <button class="emoji" type="button" data-emoji="💪">💪</button>
+              <button class="emoji" type="button" data-emoji="🎉">🎉</button>
+              <button class="emoji" type="button" data-emoji="🔥">🔥</button>
+              <button class="emoji" type="button" data-emoji="💋">💋</button>
+              <button class="emoji" type="button" data-emoji="💌">💌</button>
+              <button class="emoji" type="button" data-emoji="🌹">🌹</button>
+              <button class="emoji" type="button" data-emoji="💝">💝</button>
+              <button class="emoji" type="button" data-emoji="❤️‍🔥">❤️‍🔥</button>
+              <button class="emoji" type="button" data-emoji="💯">💯</button>
+              <button class="emoji" type="button" data-emoji="✨">✨</button>
+              <button class="emoji" type="button" data-emoji="🍻">🍻</button>
+              <button class="emoji" type="button" data-emoji="🥂">🥂</button>
+              <button class="emoji" type="button" data-emoji="🍷">🍷</button>
+              <button class="emoji" type="button" data-emoji="🍬">🍬</button>
+              <button class="emoji" type="button" data-emoji="🍓">🍓</button>
+              <button class="emoji" type="button" data-emoji="🍒">🍒</button>
+              <button class="emoji" type="button" data-emoji="🧸">🧸</button>
+              <button class="emoji" type="button" data-emoji="🐶">🐶</button>
+              <button class="emoji" type="button" data-emoji="🐱">🐱</button>
+            </div>
+            <div id="chatInputRow" class="row chat-input-row">
+              <textarea
+                id="chatInput"
+                class="input chat-textarea"
+                placeholder="输入消息：Enter 换行，Ctrl+Enter 发送"
+                spellcheck="false"
+              ></textarea>
+              <button id="chatEmojiBtn" class="btn btn-ghost chat-emoji-btn" type="button" aria-label="表情">
+                😺
+              </button>
+              <button id="chatSendBtn" class="btn btn-primary">发送</button>
+            </div>
           </div>
         </section>
 
@@ -97,4 +155,3 @@
     <script src="./main.js"></script>
   </body>
 </html>
-
