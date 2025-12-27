@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   deckText: "tod_simple_deck_text_v1",
   selfSide: "tod_simple_self_side_v1",
   chat: "tod_simple_chat_v1",
+  phrasesText: "tod_simple_phrases_text_v1",
   roomId: "tod_simple_room_id_v1",
   clientId: "tod_simple_client_id_v1",
 };
@@ -22,6 +23,8 @@ const DEFAULT_DECK_TEXT = [
   "描述你理想的一天会怎么过",
   "说出你最想学的一项技能",
 ].join("\n");
+
+const DEFAULT_PHRASES_TEXT = ["哈哈哈", "收到", "OK", "等我一下", "你先说", "轮到你了", "我选真心话", "我选大冒险"].join("\n");
 
 function $(id) {
   return document.getElementById(id);
@@ -97,6 +100,14 @@ function parseDeck(text) {
     .map((s) => s.trim())
     .filter(Boolean)
     .slice(0, 2000);
+}
+
+function parsePhrases(text) {
+  return String(text || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 120);
 }
 
 function shuffle(array) {
@@ -238,9 +249,12 @@ const els = {
   chatInputRow: $("chatInputRow"),
   emojiPanel: $("emojiPanel"),
   chatEmojiBtn: $("chatEmojiBtn"),
+  phrasesPanel: $("phrasesPanel"),
+  chatPhrasesBtn: $("chatPhrasesBtn"),
   chatInput: $("chatInput"),
   chatSendBtn: $("chatSendBtn"),
-  chatClearBtn: $("chatClearBtn"),
+  phrasesChips: $("phrasesChips"),
+  phrasesInput: $("phrasesInput"),
 };
 
 const state = {
@@ -248,6 +262,7 @@ const state = {
   playerB: loadText(STORAGE_KEYS.playerB, "你"),
   selfSide: loadText(STORAGE_KEYS.selfSide, "A") === "B" ? "B" : "A",
   deckText: loadText(STORAGE_KEYS.deckText, DEFAULT_DECK_TEXT),
+  phrasesText: loadText(STORAGE_KEYS.phrasesText, DEFAULT_PHRASES_TEXT),
   lastDraw: null,
   lastPlayerSide: "",
   samePlayerStreak: 0,
@@ -265,6 +280,7 @@ const state = {
   roomDirty: { players: false, deck: false, chat: false, draw: false },
   roomFieldAt: { players: 0, deck: 0, chat: 0, draw: 0 },
   saveTimer: null,
+  phrasesSaveTimer: null,
 };
 
 function setRoomStatus(text) {
@@ -591,6 +607,59 @@ function scheduleSaveDeckText(nextText) {
   }, 250);
 }
 
+function isPhrasesPanelOpen() {
+  if (!els.phrasesPanel) return false;
+  return !els.phrasesPanel.hasAttribute("hidden");
+}
+
+function setPhrasesPanelOpen(open) {
+  if (!els.phrasesPanel || !els.chatPhrasesBtn) return;
+  if (open) {
+    els.phrasesPanel.removeAttribute("hidden");
+    els.chatPhrasesBtn.classList.add("is-active");
+    els.chatPhrasesBtn.setAttribute("aria-expanded", "true");
+  } else {
+    els.phrasesPanel.setAttribute("hidden", "");
+    els.chatPhrasesBtn.classList.remove("is-active");
+    els.chatPhrasesBtn.setAttribute("aria-expanded", "false");
+  }
+}
+
+function togglePhrasesPanel() {
+  setPhrasesPanelOpen(!isPhrasesPanelOpen());
+}
+
+function renderPhrases() {
+  if (!els.phrasesChips) return;
+  els.phrasesChips.innerHTML = "";
+  const phrases = parsePhrases(state.phrasesText);
+  if (!phrases.length) {
+    const empty = document.createElement("div");
+    empty.className = "muted";
+    empty.textContent = "暂无常用语";
+    els.phrasesChips.appendChild(empty);
+    return;
+  }
+
+  for (const p of phrases) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip phrase-chip";
+    btn.textContent = p;
+    btn.setAttribute("data-phrase", p);
+    els.phrasesChips.appendChild(btn);
+  }
+}
+
+function scheduleSavePhrasesText(nextText) {
+  state.phrasesText = String(nextText || "");
+  if (state.phrasesSaveTimer) window.clearTimeout(state.phrasesSaveTimer);
+  state.phrasesSaveTimer = window.setTimeout(() => {
+    saveText(STORAGE_KEYS.phrasesText, state.phrasesText);
+    renderPhrases();
+  }, 200);
+}
+
 function currentPlayers() {
   const a = (state.playerA || "").trim();
   const b = (state.playerB || "").trim();
@@ -794,6 +863,7 @@ function setEmojiPanelOpen(open) {
 }
 
 function toggleEmojiPanel() {
+  setPhrasesPanelOpen(false);
   setEmojiPanelOpen(!isEmojiPanelOpen());
 }
 
@@ -856,6 +926,7 @@ function sendChat() {
   const text = String(els.chatInput.value || "").replace(/\r\n/g, "\n").trim();
   if (!text) return;
   setEmojiPanelOpen(false);
+  setPhrasesPanelOpen(false);
   const msg = { id: makeChatId(), side: state.selfSide, text, ts: Date.now() };
   state.chat = mergeChatLists(state.chat, [msg]);
   saveJson(STORAGE_KEYS.chat, state.chat);
@@ -973,11 +1044,22 @@ function bindEvents() {
     });
 
     document.addEventListener("click", (e) => {
-      if (!isEmojiPanelOpen()) return;
       const t = e.target;
-      if (els.emojiPanel.contains(t)) return;
-      if (els.chatEmojiBtn.contains(t)) return;
+      if (isEmojiPanelOpen()) {
+        if (!els.emojiPanel.contains(t) && !els.chatEmojiBtn.contains(t)) setEmojiPanelOpen(false);
+      }
+      if (isPhrasesPanelOpen()) {
+        if (els.phrasesPanel && els.phrasesPanel.contains(t)) return;
+        if (els.chatPhrasesBtn && els.chatPhrasesBtn.contains(t)) return;
+        setPhrasesPanelOpen(false);
+      }
+    });
+  }
+  if (els.chatPhrasesBtn && els.phrasesPanel) {
+    els.chatPhrasesBtn.addEventListener("click", () => {
       setEmojiPanelOpen(false);
+      togglePhrasesPanel();
+      ensureChatBottomVisible();
     });
   }
   els.chatInput.addEventListener("keydown", (e) => {
@@ -990,6 +1072,7 @@ function bindEvents() {
   els.chatInput.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     setEmojiPanelOpen(false);
+    setPhrasesPanelOpen(false);
   });
   els.chatInput.addEventListener("input", () => {
     autoSizeChatInput();
@@ -1000,12 +1083,22 @@ function bindEvents() {
       ensureChatBottomVisible();
     }, 60);
   });
-  els.chatClearBtn.addEventListener("click", () => {
-    state.chat = [];
-    saveJson(STORAGE_KEYS.chat, state.chat);
-    renderChat();
-    markRoomDirty("chat");
-  });
+  if (els.phrasesChips) {
+    els.phrasesChips.addEventListener("click", (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest(".phrase-chip") : null;
+      if (!btn) return;
+      const phrase = btn.getAttribute("data-phrase") || btn.textContent || "";
+      if (!phrase) return;
+      setEmojiPanelOpen(false);
+      insertTextIntoChatInput(phrase);
+      setPhrasesPanelOpen(false);
+    });
+  }
+  if (els.phrasesInput) {
+    els.phrasesInput.addEventListener("input", () => {
+      scheduleSavePhrasesText(els.phrasesInput.value);
+    });
+  }
 
   window.addEventListener("resize", () => {
     ensureChatBottomVisible();
@@ -1036,6 +1129,7 @@ function hydrateUI() {
   els.playerA.value = state.playerA;
   els.playerB.value = state.playerB;
   els.deckInput.value = state.deckText;
+  if (els.phrasesInput) els.phrasesInput.value = state.phrasesText;
   if (els.roomInput) els.roomInput.value = state.roomId || "";
   if (els.roomCopyBtn) els.roomCopyBtn.disabled = !state.roomId;
   renderDeckCount();
@@ -1043,6 +1137,8 @@ function hydrateUI() {
   updateSelfButtons();
   renderChat();
   autoSizeChatInput();
+  renderPhrases();
+  setPhrasesPanelOpen(false);
   setEmojiPanelOpen(false);
   dedupeEmojiPanel();
   syncStickyDraw();

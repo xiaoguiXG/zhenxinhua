@@ -50,12 +50,6 @@
 
         <section class="panel">
           <h2>抽题</h2>
-          <div class="row row-wrap">
-            <button id="drawBtn" class="btn btn-primary">抽一题</button>
-            <button id="copyBtn" class="btn btn-ghost" disabled>复制</button>
-            <div class="muted">题库：<span id="deckCount">0</span> 条</div>
-          </div>
-
           <div id="card" class="card" aria-live="polite">
             <div class="card-top">
               <span id="who" class="who">未指定玩家</span>
@@ -67,8 +61,13 @@
         <section class="panel panel-wide">
           <div class="row row-space">
             <h2>聊天</h2>
-            <button id="chatClearBtn" class="btn btn-ghost">清空聊天</button>
+            <div class="row">
+              <button id="drawBtn" class="btn btn-primary" type="button">抽一题</button>
+              <button id="copyBtn" class="btn btn-ghost" type="button" disabled>复制</button>
+              <div class="muted">题库：<span id="deckCount">0</span> 条</div>
+            </div>
           </div>
+
           <div id="chatShell" class="chat-shell">
             <div id="chatList" class="chat-list" aria-live="polite"></div>
             <div id="emojiPanel" class="emoji-panel" hidden>
@@ -124,6 +123,9 @@
               <button class="emoji" type="button" data-emoji="🐶">🐶</button>
               <button class="emoji" type="button" data-emoji="🐱">🐱</button>
             </div>
+            <div id="phrasesPanel" class="phrases-panel" hidden>
+              <div id="phrasesChips" class="chips"></div>
+            </div>
             <div id="chatInputRow" class="row chat-input-row">
               <textarea
                 id="chatInput"
@@ -133,6 +135,9 @@
               ></textarea>
               <button id="chatEmojiBtn" class="btn btn-ghost chat-emoji-btn" type="button" aria-label="表情">
                 😺
+              </button>
+              <button id="chatPhrasesBtn" class="btn btn-ghost chat-phrases-btn" type="button" aria-label="常用语">
+                常
               </button>
               <button id="chatSendBtn" class="btn btn-primary">发送</button>
             </div>
@@ -148,6 +153,16 @@
             </div>
           </div>
           <textarea id="deckInput" class="input textarea" spellcheck="false" placeholder="每行一题"></textarea>
+
+          <div class="row row-space phrases-edit-head">
+            <h2>常用语（编辑，每行一句）</h2>
+          </div>
+          <textarea
+            id="phrasesInput"
+            class="input phrases-textarea"
+            spellcheck="false"
+            placeholder="常用语（每行一句）"
+          ></textarea>
         </section>
       </main>
     </div>
