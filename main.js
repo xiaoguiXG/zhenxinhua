@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   clientId: "tod_simple_client_id_v1",
 };
 
-const ROOM_BASE_URL = "https://kvdb.io/tod_simple_room_public_v1";
+const ROOM_API_URL = "/.netlify/functions/room";
 
 const DEFAULT_DECK_TEXT = [
   "说一件你最近开心的小事",
@@ -28,27 +28,19 @@ function $(id) {
 }
 
 function loadText(key, fallback) {
-  const raw = localStorage.getItem(key);
-  if (raw == null) return fallback;
-  return raw;
+  return fallback;
 }
 
 function saveText(key, value) {
-  localStorage.setItem(key, value);
+  return;
 }
 
 function loadJson(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
+  return fallback;
 }
 
 function saveJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  return;
 }
 
 function parseDeck(text) {
@@ -227,7 +219,7 @@ function setRoomStatus(text) {
 
 function roomKeyUrl(roomId) {
   const clean = normalizeRoomId(roomId);
-  return clean ? `${ROOM_BASE_URL}/${encodeURIComponent(clean)}` : "";
+  return clean ? `${ROOM_API_URL}?room=${encodeURIComponent(clean)}` : "";
 }
 
 function buildRoomStateLocalOnly() {
