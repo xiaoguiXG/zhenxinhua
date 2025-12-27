@@ -110,6 +110,11 @@ h2 {
   gap: 18px;
 }
 
+.row-tight.row-wrap {
+  gap: 10px;
+  row-gap: 10px;
+}
+
 .input,
 .select {
   width: 100%;
@@ -475,6 +480,9 @@ h2 {
   .row-wrap .input {
     min-width: 0;
     flex: 1 1 160px;
+  }
+  #roomStatus {
+    flex-basis: 100%;
   }
   .seg {
     width: 100%;
