@@ -2,7 +2,10 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <title>真心话大冒险</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
@@ -16,6 +19,14 @@
       </header>
 
       <main class="grid">
+        <section class="panel panel-wide sticky-now" aria-live="polite">
+          <div class="sticky-now-meta">
+            <span class="sticky-now-label">当前题目</span>
+            <span id="stickyWho" class="who">未指定玩家</span>
+          </div>
+          <div id="stickyPrompt" class="sticky-prompt">点击“抽一题”开始</div>
+        </section>
+
         <section class="panel">
           <h2>玩家</h2>
           <div class="row row-wrap">

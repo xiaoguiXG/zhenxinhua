@@ -27,20 +27,68 @@ function $(id) {
   return document.getElementById(id);
 }
 
+const _memoryStore = new Map();
+
+function getLocalStorageSafe() {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return null;
+    const testKey = "__tod_simple_storage_test__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+const _localStorage = getLocalStorageSafe();
+
 function loadText(key, fallback) {
+  const k = String(key || "");
+  if (!k) return fallback;
+
+  try {
+    if (_localStorage) {
+      const value = _localStorage.getItem(k);
+      if (value !== null) return value;
+    }
+  } catch {
+    // ignore
+  }
+
+  if (_memoryStore.has(k)) return String(_memoryStore.get(k));
   return fallback;
 }
 
 function saveText(key, value) {
-  return;
+  const k = String(key || "");
+  if (!k) return;
+  const v = value == null ? "" : String(value);
+  _memoryStore.set(k, v);
+  try {
+    if (_localStorage) _localStorage.setItem(k, v);
+  } catch {
+    // ignore
+  }
 }
 
 function loadJson(key, fallback) {
-  return fallback;
+  const text = loadText(key, "");
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed == null ? fallback : parsed;
+  } catch {
+    return fallback;
+  }
 }
 
 function saveJson(key, value) {
-  return;
+  try {
+    saveText(key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
 }
 
 function parseDeck(text) {
@@ -183,6 +231,8 @@ const els = {
   copyBtn: $("copyBtn"),
   who: $("who"),
   prompt: $("prompt"),
+  stickyWho: $("stickyWho"),
+  stickyPrompt: $("stickyPrompt"),
   chatList: $("chatList"),
   chatInput: $("chatInput"),
   chatSendBtn: $("chatSendBtn"),
@@ -322,16 +372,14 @@ function applyRoomState(remoteRaw) {
     }
 
     if (v2.players.updatedAt > state.roomFieldAt.players) {
-      if (v2.players.a) {
-        state.playerA = v2.players.a;
-        saveText(STORAGE_KEYS.playerA, state.playerA);
-        if (els.playerA) els.playerA.value = state.playerA;
-      }
-      if (v2.players.b) {
-        state.playerB = v2.players.b;
-        saveText(STORAGE_KEYS.playerB, state.playerB);
-        if (els.playerB) els.playerB.value = state.playerB;
-      }
+      state.playerA = v2.players.a;
+      saveText(STORAGE_KEYS.playerA, state.playerA);
+      if (els.playerA) els.playerA.value = state.playerA;
+
+      state.playerB = v2.players.b;
+      saveText(STORAGE_KEYS.playerB, state.playerB);
+      if (els.playerB) els.playerB.value = state.playerB;
+
       state.roomFieldAt.players = v2.players.updatedAt;
       updateSelfButtons();
     }
@@ -599,16 +647,26 @@ function labelForDrawPlayer(player) {
   return `轮到：对方（${name}）`;
 }
 
+function syncStickyDraw() {
+  if (!els.stickyWho && !els.stickyPrompt) return;
+  const whoText = els.who ? els.who.textContent : "";
+  const promptText = els.prompt ? els.prompt.textContent : "";
+  if (els.stickyWho) els.stickyWho.textContent = whoText;
+  if (els.stickyPrompt) els.stickyPrompt.textContent = promptText;
+}
+
 function showDraw(result) {
   if (!result.ok) {
     els.who.textContent = "未指定玩家";
     els.prompt.textContent = result.message;
+    syncStickyDraw();
     setCopyEnabled(false);
     state.lastDraw = null;
     return;
   }
   els.who.textContent = labelForDrawPlayer(result.player);
   els.prompt.textContent = result.text;
+  syncStickyDraw();
   setCopyEnabled(true);
   state.lastDraw = result;
   markRoomDirty("draw");
@@ -642,6 +700,7 @@ function animateDraw(finalResult) {
     const randomPlayer = players.length ? pickRandom(players) : null;
     els.prompt.textContent = text;
     els.who.textContent = randomPlayer ? labelForDrawPlayer(randomPlayer) : "抽取中…";
+    syncStickyDraw();
 
     const nextDelay = remaining < 450 ? 170 : remaining < 950 ? 120 : 70;
     window.setTimeout(tick, nextDelay);
@@ -830,6 +889,7 @@ function hydrateUI() {
   updateSelfButtons();
   renderChat();
   autoSizeChatInput();
+  syncStickyDraw();
 }
 
 bindEvents();
